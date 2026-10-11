@@ -73,10 +73,16 @@ const fl=[
 ];
 const bumpers=[
   {x:300,y:215,r:14,p:100,f:0},{x:268,y:140,r:14,p:100,f:0},
-  {x:90,y:165,r:14,p:100,f:0},{x:135,y:230,r:14,p:100,f:0},{x:70,y:270,r:14,p:100,f:0},
+  {x:90,y:165,r:14,p:100,f:0},{x:70,y:270,r:14,p:100,f:0},
   {x:150,y:410,r:14,p:100,f:0},{x:210,y:540,r:14,p:100,f:0},{x:335,y:500,r:14,p:100,f:0}
 ];
-const HX=289,HY=432,HR=26; // bache (segundo nivel) bajo el hueco del mini pinball
+// baches (segundo nivel) con muelle automático: atrapan la bola y la lanzan hacia arriba
+// sp = dispersión lateral del lanzamiento
+const HR=26;
+const holes=[
+  {x:289,y:432,sp:16},   // bajo el hueco del mini pinball
+  {x:135,y:230,sp:120}   // arriba a la izquierda (sustituye al bómper de la derecha de los tres)
+];
 
 // ---- Estado ----
 let ball,st='play',score=0,balls=3,overAt=0,comp=0;
@@ -152,8 +158,9 @@ function step(h){
   }
   if(st!=='play')return;
   if(ball.cap>0){
-    ball.cap-=h;ball.x=HX;ball.y=HY;ball.vx=ball.vy=0;
-    if(ball.cap<=0){ball.vy=-(480+Math.random()*120);ball.vx=(Math.random()-.5)*16;ball.nc=.4;}
+    const ho=ball.hole;
+    ball.cap-=h;ball.x=ho.x;ball.y=ho.y;ball.vx=ball.vy=0;
+    if(ball.cap<=0){ball.vy=-(480+Math.random()*120);ball.vx=(Math.random()-.5)*ho.sp;ball.nc=.4;}
     return;
   }
   ball.nc-=h;
@@ -182,7 +189,9 @@ function step(h){
       score+=b.p;b.f=1;
     }
   }
-  if(ball.nc<=0&&Math.hypot(ball.x-HX,ball.y-HY)<HR-6){ball.cap=.6;score+=250;}
+  if(ball.nc<=0)for(const ho of holes){
+    if(Math.hypot(ball.x-ho.x,ball.y-ho.y)<HR-6){ball.cap=.6;ball.hole=ho;score+=250;break;}
+  }
   // límite de velocidad: 800 en juego normal; tras un lanzamiento fuerte se permite más y baja con la bola
   let sp=Math.hypot(ball.vx,ball.vy);
   if(sp>ball.vm){ball.vx*=ball.vm/sp;ball.vy*=ball.vm/sp;sp=ball.vm;}
@@ -223,13 +232,15 @@ function draw(){
     g.beginPath();g.moveTo(f.px,f.py);g.lineTo(f.px+f.L*Math.cos(f.a),f.py+f.L*Math.sin(f.a));g.stroke();
   }
   // bache y muelle automático
-  g.shadowColor='#9aa0b4';g.shadowBlur=4;g.strokeStyle='#9aa0b4';g.lineWidth=2;
-  const sh=ball.cap>0?10:22,sb=HY+HR+30;
-  g.beginPath();g.moveTo(HX,sb);
-  for(let i=1;i<=6;i++)g.lineTo(i%2?HX-9:HX+9,sb-sh*i/6);
-  g.stroke();
-  g.shadowColor='#38e1ff';g.shadowBlur=8;g.fillStyle='#04040c';g.strokeStyle='#38e1ff';g.lineWidth=3;
-  g.beginPath();g.arc(HX,HY,HR,0,7);g.fill();g.stroke();
+  for(const ho of holes){
+    g.shadowColor='#9aa0b4';g.shadowBlur=4;g.strokeStyle='#9aa0b4';g.lineWidth=2;
+    const sh=(ball.cap>0&&ball.hole===ho)?10:22,sb=ho.y+HR+30;
+    g.beginPath();g.moveTo(ho.x,sb);
+    for(let i=1;i<=6;i++)g.lineTo(i%2?ho.x-9:ho.x+9,sb-sh*i/6);
+    g.stroke();
+    g.shadowColor='#38e1ff';g.shadowBlur=8;g.fillStyle='#04040c';g.strokeStyle='#38e1ff';g.lineWidth=3;
+    g.beginPath();g.arc(ho.x,ho.y,HR,0,7);g.fill();g.stroke();
+  }
   // muelle
   const py=PY0+comp;
   g.shadowColor='#9aa0b4';g.shadowBlur=4;g.strokeStyle='#9aa0b4';g.lineWidth=3;
@@ -264,3 +275,4 @@ requestAnimationFrame(loop);
 </script>
 </body>
 </html>
+
