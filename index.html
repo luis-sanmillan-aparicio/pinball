@@ -80,7 +80,7 @@ const HX=289,HY=432,HR=26; // bache (segundo nivel) bajo el hueco del mini pinba
 
 // ---- Estado ----
 let ball,st='play',score=0,balls=3,overAt=0,comp=0;
-const newBall=()=>{ball={x:407,y:PY0-BR,vx:0,vy:0,seated:true,cap:0,nc:0};comp=0;};
+const newBall=()=>{ball={x:407,y:PY0-BR,vx:0,vy:0,seated:true,cap:0,nc:0,vm:800};comp=0;};
 newBall();
 
 // ---- Entrada ----
@@ -90,7 +90,11 @@ const plungerHeld=()=>keys.P||[...ptr.values()].includes('P');
 const side=e=>e.clientX<innerWidth/2?'L':'R';
 function toX(e){const r=cv.getBoundingClientRect();return (e.clientX-r.left)/r.width*W;}
 function release(){
-  if(ball.seated&&st==='play'){ball.seated=false;ball.vx=0;ball.vy=-(250+comp/MAXC*550);}
+  if(ball.seated&&st==='play'){
+    // con el muelle a la mitad la bola sale con 800 (lo que antes daba el máximo); con el muelle entero, 1600
+    const v=Math.max(250,1600*comp/MAXC);
+    ball.seated=false;ball.vx=0;ball.vy=-v;ball.vm=Math.max(800,v);
+  }
   comp=0;
 }
 function restart(){
@@ -179,8 +183,10 @@ function step(h){
     }
   }
   if(ball.nc<=0&&Math.hypot(ball.x-HX,ball.y-HY)<HR-6){ball.cap=.6;score+=250;}
-  const sp=Math.hypot(ball.vx,ball.vy);
-  if(sp>800){ball.vx*=800/sp;ball.vy*=800/sp;}
+  // límite de velocidad: 800 en juego normal; tras un lanzamiento fuerte se permite más y baja con la bola
+  let sp=Math.hypot(ball.vx,ball.vy);
+  if(sp>ball.vm){ball.vx*=ball.vm/sp;ball.vy*=ball.vm/sp;sp=ball.vm;}
+  ball.vm=Math.max(800,Math.min(ball.vm,sp));
   if(ball.y>H+20){
     balls--;
     if(balls>0)newBall();else{st='over';overAt=performance.now();}
@@ -249,7 +255,9 @@ function draw(){
 let last=performance.now();
 function loop(t){
   const dt=Math.min((t-last)/1000,1/30);last=t;
-  for(let i=0;i<4;i++)step(dt/4);
+  // más subpasos cuando la bola va muy rápida, para que no atraviese paredes
+  const n=Math.max(4,Math.ceil(Math.hypot(ball.vx,ball.vy)*dt/6));
+  for(let i=0;i<n;i++)step(dt/n);
   draw();requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
