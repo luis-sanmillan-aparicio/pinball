@@ -26,8 +26,9 @@ addEventListener('resize',resize);resize();
 // ---- Tablero ----
 const walls=[];
 const seg=(a,b,c,d,r=2)=>walls.push([a,b,c,d,r]);
-seg(20,222,20,480);                 // pared izquierda (termina en el pivote del flipper pequeño)
-seg(74,496,74,660);                 // única pared bajo el flipper pequeño: la bola no puede colarse por debajo
+seg(20,222,20,478);                 // pared izquierda (llega hasta el flipper pequeño)
+seg(20,478,74,503.5);               // tramo en diagonal justo por debajo del flipper pequeño (une las dos paredes)
+seg(74,503.5,74,660);               // pared bajo el flipper pequeño: la bola no puede colarse por debajo
 seg(424,238,424,818);               // pared exterior del carril
 seg(LANE,226,LANE,818);             // divisoria carril / tablero
 seg(186,170,186,300);               // pared del mini pinball
@@ -75,7 +76,7 @@ const mk=(k,px,py,L,rest)=>({px,py,L,a:rest,rest,act:k==='L'?-.5:Math.PI+.5,om:0
 const fl=[
   mk('L',PLX,FPY,FLEN,rl(PLX,FPY,XL,YR)),
   mk('R',PRX,FPY,FLEN,rr(PRX,FPY,LANE,YR)),
-  mk('L',34,470,42,.45),
+  mk('L',28,470,42,.45),
   mk('L',232,330,42,rl(232,330,186,300)),
   mk('R',346,330,42,rr(346,330,LANE,300))
 ];
