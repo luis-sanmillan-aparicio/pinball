@@ -27,7 +27,7 @@ addEventListener('resize',resize);resize();
 const walls=[];
 const seg=(a,b,c,d,r=2)=>walls.push([a,b,c,d,r]);
 seg(20,222,20,480);                 // pared izquierda (termina en el pivote del flipper pequeño)
-seg(74,496,74,696);                 // única pared bajo el flipper pequeño: la bola no puede colarse por debajo
+seg(74,496,74,660);                 // única pared bajo el flipper pequeño: la bola no puede colarse por debajo
 seg(424,238,424,818);               // pared exterior del carril
 seg(LANE,226,LANE,818);             // divisoria carril / tablero
 seg(186,170,186,300);               // pared del mini pinball
@@ -53,8 +53,16 @@ for(let i=0;i<12;i++){              // arco superior (mitad izquierda)
     seg(px,py,x,y);px=x;py=y;
   }
 }
+// Parte baja simétrica: las dos rampas arrancan a la misma altura (YR) en la pared izquierda (XL)
+// y en la divisoria del carril (LANE), y los dos flippers grandes quedan a la misma altura (FPY).
+// El ángulo se calcula para que entre las puntas quede un hueco de FGAP.
+const XL=74,YR=660,FPY=710,FLEN=75,FGAP=63;
+let FANG=.6;
+for(let i=0;i<40;i++)FANG=Math.atan2(FPY-YR,(LANE-XL-FGAP)/2-FLEN*Math.cos(FANG));
+const FDX=(LANE-XL-FGAP)/2-FLEN*Math.cos(FANG);
+const PLX=XL+FDX,PRX=LANE-FDX;      // pivotes de los flippers grandes (izquierdo y derecho)
 // rampas hacia los flippers (mismo grosor que el flipper)
-seg(74,696,110,720,FR);seg(LANE,660,298,720,FR);
+seg(XL,YR,PLX,FPY,FR);seg(LANE,YR,PRX,FPY,FR);
 seg(186,300,232,330,FR);seg(LANE,300,346,330,FR);
 
 // Puerta de un solo sentido en la salida del carril (línea discontinua):
@@ -65,8 +73,8 @@ const rl=(px,py,gx,gy)=>Math.atan2(py-gy,px-gx);
 const rr=(px,py,gx,gy)=>Math.PI-Math.atan2(py-gy,gx-px);
 const mk=(k,px,py,L,rest)=>({px,py,L,a:rest,rest,act:k==='L'?-.5:Math.PI+.5,om:0,k});
 const fl=[
-  mk('L',110,720,75,rl(110,720,20,660)),
-  mk('R',298,720,75,rr(298,720,LANE,660)),
+  mk('L',PLX,FPY,FLEN,rl(PLX,FPY,XL,YR)),
+  mk('R',PRX,FPY,FLEN,rr(PRX,FPY,LANE,YR)),
   mk('L',34,470,42,.45),
   mk('L',232,330,42,rl(232,330,186,300)),
   mk('R',346,330,42,rr(346,330,LANE,300))
