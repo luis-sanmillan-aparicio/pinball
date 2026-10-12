@@ -121,14 +121,38 @@ addEventListener('pointerdown',e=>{
   if(restart())return;
   ptr.set(e.pointerId,(ball.seated&&toX(e)>=368)?'P':side(e));sync();
 },{passive:false});
-addEventListener('pointermove',e=>{
-  if(ptr.has(e.pointerId)&&ptr.get(e.pointerId)!=='P'){ptr.set(e.pointerId,side(e));sync();}
-});
 const up=e=>{
   const t=ptr.get(e.pointerId);ptr.delete(e.pointerId);sync();
   if(t==='P'&&!plungerHeld())release();
 };
+// Soltar todo: evita que un flipper se quede arriba si el navegador pierde un evento de "soltar"
+function releaseAll(withKeys){
+  const wasP=plungerHeld();
+  ptr.clear();
+  if(withKeys)keys.L=keys.R=keys.P=false;
+  sync();
+  if(wasP&&!plungerHeld())release();
+}
+addEventListener('pointermove',e=>{
+  if(!ptr.has(e.pointerId))return;
+  if(e.pointerType==='mouse'&&!e.buttons){up(e);return;}   // el ratón ya se soltó (fuera de la ventana, etc.)
+  if(ptr.get(e.pointerId)!=='P'){ptr.set(e.pointerId,side(e));sync();}
+});
 addEventListener('pointerup',up);addEventListener('pointercancel',up);
+// Vigilante: si algo figura como pulsado pero no hay ningún dedo (ni botón de ratón) apoyado, se suelta.
+let nTouch=0,mouseDown=false,sawTouch=false,idleT=0;
+const touchSync=e=>{sawTouch=true;nTouch=e.touches.length;if(!nTouch)releaseAll(false);};
+for(const n of ['touchstart','touchmove','touchend','touchcancel'])addEventListener(n,touchSync,{passive:true});
+for(const n of ['pointerdown','pointermove','pointerup','pointercancel'])
+  addEventListener(n,e=>{if(e.pointerType!=='touch')mouseDown=!!e.buttons;});
+function watchdog(t){
+  // 150 ms de margen: el pointerdown llega justo antes que el touchstart
+  if(sawTouch&&ptr.size&&!nTouch&&!mouseDown){
+    if(!idleT)idleT=t;else if(t-idleT>150){releaseAll(false);idleT=0;}
+  }else idleT=0;
+}
+addEventListener('blur',()=>releaseAll(true));
+document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseAll(true);});
 addEventListener('keydown',e=>{
   if(e.code==='ArrowLeft'||e.code==='KeyA')keys.L=true;
   if(e.code==='ArrowRight'||e.code==='KeyD')keys.R=true;
@@ -275,6 +299,7 @@ function draw(){
 let last=performance.now();
 function loop(t){
   const dt=Math.min((t-last)/1000,1/30);last=t;
+  watchdog(t);
   // más subpasos cuando la bola va muy rápida, para que no atraviese paredes
   const n=Math.max(4,Math.ceil(Math.hypot(ball.vx,ball.vy)*dt/6));
   for(let i=0;i<n;i++)step(dt/n);
