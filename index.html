@@ -17,7 +17,7 @@ const cv=document.getElementById('c'),g=cv.getContext('2d');
 const AND=/Android/i.test(navigator.userAgent);let bgC=null;
 
 function resize(){
-  const s=Math.min(innerWidth/W,innerHeight/H),d=AND?Math.min(window.devicePixelRatio||1,2):(window.devicePixelRatio||1);
+  const s=Math.min(innerWidth/W,innerHeight/H),d=AND?1:(window.devicePixelRatio||1);
   cv.style.width=W*s+'px';cv.style.height=H*s+'px';
   cv.width=Math.round(W*s*d);cv.height=Math.round(H*s*d);
   g.setTransform(cv.width/W,0,0,cv.height/H,0,0);
@@ -322,5 +322,3 @@ requestAnimationFrame(loop);
 </script>
 </body>
 </html>
-
-
