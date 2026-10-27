@@ -14,12 +14,14 @@ canvas{display:block;position:absolute;left:50%;top:50%;transform:translate(-50%
 <script>
 const W=440,H=830,BR=8,GR=500,FR=7,LANE=388,PY0=758,MAXC=45;
 const cv=document.getElementById('c'),g=cv.getContext('2d');
+const AND=/Android/i.test(navigator.userAgent);let bgC=null;
 
 function resize(){
-  const s=Math.min(innerWidth/W,innerHeight/H),d=window.devicePixelRatio||1;
+  const s=Math.min(innerWidth/W,innerHeight/H),d=AND?Math.min(window.devicePixelRatio||1,2):(window.devicePixelRatio||1);
   cv.style.width=W*s+'px';cv.style.height=H*s+'px';
   cv.width=Math.round(W*s*d);cv.height=Math.round(H*s*d);
   g.setTransform(cv.width/W,0,0,cv.height/H,0,0);
+  bgC=null;
 }
 addEventListener('resize',resize);resize();
 
@@ -236,7 +238,7 @@ function step(h){
 }
 
 // ---- Dibujo ----
-function draw(){
+function drawStatic(g){
   const bg=g.createLinearGradient(0,0,0,H);
   bg.addColorStop(0,'#0b0b1e');bg.addColorStop(1,'#150a24');
   g.fillStyle=bg;g.fillRect(0,0,W,H);
@@ -254,6 +256,17 @@ function draw(){
   g.shadowColor='#ffe600';g.shadowBlur=6;g.strokeStyle='#ffe600';g.lineWidth=3;
   g.beginPath();g.moveTo(GATE[0],GATE[1]);g.lineTo(GATE[2],GATE[3]);g.stroke();
   g.restore();
+}
+function draw(){
+  if(AND){
+    if(!bgC){
+      bgC=document.createElement('canvas');bgC.width=cv.width;bgC.height=cv.height;
+      const k=bgC.getContext('2d');k.setTransform(cv.width/W,0,0,cv.height/H,0,0);drawStatic(k);
+    }
+    g.shadowBlur=0;g.setTransform(1,0,0,1,0,0);g.drawImage(bgC,0,0);
+    g.setTransform(cv.width/W,0,0,cv.height/H,0,0);
+  }else drawStatic(g);
+  g.lineCap='round';g.lineJoin='round';
   for(const b of bumpers){
     b.f=Math.max(0,b.f-.06);
     g.shadowColor='#ff3d8b';g.shadowBlur=8+16*b.f;
@@ -298,7 +311,7 @@ function draw(){
 
 let last=performance.now();
 function loop(t){
-  const dt=Math.min((t-last)/1000,1/30);last=t;
+  const dt=Math.min((t-last)/1000,AND?1/15:1/30);last=t;
   watchdog(t);
   // más subpasos cuando la bola va muy rápida, para que no atraviese paredes
   const n=Math.max(4,Math.ceil(Math.hypot(ball.vx,ball.vy)*dt/6));
@@ -309,4 +322,5 @@ requestAnimationFrame(loop);
 </script>
 </body>
 </html>
+
 
